@@ -1,0 +1,26 @@
+{
+  "name": "cadence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-enhanced classical music discovery and review platform.",
+  "workspaces": [
+    "packages/*",
+    "web"
+  ],
+  "scripts": {
+    "db:generate": "npm run generate --workspace @cadence/db",
+    "db:migrate": "npm run migrate --workspace @cadence/db",
+    "db:push": "npm run push --workspace @cadence/db",
+    "db:seed": "npm run seed --workspace @cadence/db",
+    "db:studio": "npm run studio --workspace @cadence/db",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "ai:install": "cd ai && python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt",
+    "ai:dev": "cd ai && ./.venv/bin/uvicorn app.main:app --reload --port 8000",
+    "ai:reindex": "cd ai && ./.venv/bin/python -c \"from app.reindex import reindex_recordings as r; print(r())\"",
+    "ai:rag": "cd ai && ./.venv/bin/python -c \"from app.rag import build_chunks as b; print(b())\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

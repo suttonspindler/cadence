@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Python
+ai/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Env
+.env
+.env.local
+.env*.local
+!.env.example
+
+# Next.js
+web/.next/
+web/out/
+web/build/
+
+# Prisma
+packages/db/generated/
+
+# Build / misc
+dist/
+*.log
+.DS_Store
+coverage/
+
+# Editors
+.vscode/
+.idea/

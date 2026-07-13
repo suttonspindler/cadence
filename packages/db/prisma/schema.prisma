@@ -1,0 +1,338 @@
+// Cadence data model — the core of the platform.
+//
+// The domain is what makes classical music hard to browse: a single WORK
+// (e.g. "The Four Seasons") has many MOVEMENTS and many RECORDINGS, and each
+// recording credits multiple ARTISTS in different ROLES (soloist, conductor,
+// ensemble). Users rate/review recordings, mark them listened, and group them
+// into collections. Vector embeddings power semantic search + recommendations.
+//
+// Prisma owns the schema and migrations. The Python AI service reads the same
+// database directly for vector similarity (pgvector), which Prisma cannot
+// express natively — hence the `Unsupported("vector(...)")` columns below.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ---------------------------------------------------------------------------
+// Catalog: Composer → Work → Movement → Recording
+// ---------------------------------------------------------------------------
+
+enum Era {
+  MEDIEVAL
+  RENAISSANCE
+  BAROQUE
+  CLASSICAL
+  ROMANTIC
+  LATE_ROMANTIC
+  MODERN
+  CONTEMPORARY
+}
+
+model Composer {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  sortName    String // "Bach, Johann Sebastian" — for alphabetical browse
+  birthYear   Int?
+  deathYear   Int?
+  era           Era
+  nationality   String?
+  bio           String?
+  // External identifier for the future MusicBrainz importer to upsert/dedupe against.
+  musicbrainzId String? @unique
+
+  works Work[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortName])
+  @@index([era])
+}
+
+model Work {
+  id            String  @id @default(cuid())
+  slug          String  @unique
+  composerId    String
+  title         String
+  // Catalogue identifier as the field musicians actually use: "Op. 8", "BWV 988", "K. 550".
+  catalogNumber String?
+  key           String? // "E major", "C minor"
+  genre         String? // "Concerto", "Symphony", "Sonata", "Mass"
+  composedYear  Int?
+  description   String?
+  musicbrainzId String? @unique
+
+  composer   Composer   @relation(fields: [composerId], references: [id], onDelete: Cascade)
+  movements  Movement[]
+  recordings Recording[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([composerId])
+  @@index([genre])
+}
+
+model Movement {
+  id           String  @id @default(cuid())
+  workId       String
+  position     Int // 1-based order within the work
+  title        String // "Spring: Allegro"
+  tempoMarking String? // "Allegro", "Largo e pianissimo sempre"
+
+  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@unique([workId, position])
+  @@index([workId])
+}
+
+enum PerformanceTradition {
+  HISTORICALLY_INFORMED // "HIP" — period instruments/practice
+  PERIOD_INSTRUMENT
+  ROMANTIC
+  TRADITIONAL
+  MODERN
+  OTHER
+}
+
+model Recording {
+  id          String               @id @default(cuid())
+  slug        String               @unique
+  workId      String
+  year        Int?
+  label       String? // "Deutsche Grammophon", "Naïve"
+  tradition     PerformanceTradition @default(OTHER)
+  notes         String?
+  musicbrainzId String?              @unique
+
+  work    Work                @relation(fields: [workId], references: [id], onDelete: Cascade)
+  credits RecordingCredit[]
+  reviews Review[]
+  listens Listen[]
+  items   CollectionItem[]
+
+  // Semantic search + recommendation vector. Dimension must match EMBEDDINGS_DIM
+  // (1024 for voyage-3.5). Populated and queried by the Python AI service.
+  embedding Unsupported("vector(1024)")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workId])
+  @@index([tradition])
+}
+
+// ---------------------------------------------------------------------------
+// Artists: performers, soloists, conductors, and ensembles/orchestras.
+// A single Artist table with a `kind` discriminator; roles live on the join.
+// ---------------------------------------------------------------------------
+
+enum ArtistKind {
+  PERSON
+  ENSEMBLE // orchestra, quartet, choir
+}
+
+enum CreditRole {
+  SOLOIST
+  PERFORMER
+  CONDUCTOR
+  ENSEMBLE
+  CHOIR
+}
+
+model Artist {
+  id         String     @id @default(cuid())
+  slug       String     @unique
+  name       String
+  kind          ArtistKind
+  instrument    String? // for PERSON: "violin", "piano"; null for ensembles
+  bio           String?
+  musicbrainzId String? @unique
+
+  credits RecordingCredit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind])
+  @@index([name])
+}
+
+model RecordingCredit {
+  id          String     @id @default(cuid())
+  recordingId String
+  artistId    String
+  role        CreditRole
+
+  recording Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  artist    Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([recordingId, artistId, role])
+  @@index([artistId])
+}
+
+// ---------------------------------------------------------------------------
+// Users, reviews, listens, collections
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+
+  reviews     Review[]
+  listens     Listen[]
+  collections Collection[]
+
+  // Auth.js (NextAuth) relations
+  accounts Account[]
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- Auth.js (NextAuth) adapter models -------------------------------------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Ratings use the multi-dimensional categories from the brief. Each is 1–5.
+model Review {
+  id          String @id @default(cuid())
+  userId      String
+  recordingId String
+  body        String?
+
+  performanceQuality     Int? // 1–5
+  soundQuality           Int? // 1–5
+  historicalAuthenticity Int? // 1–5
+  emotionalImpact        Int? // 1–5
+  recommendationLevel    Int? // 1–5 — "how strongly do you recommend this?"
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recording Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, recordingId]) // one review per user per recording
+  @@index([recordingId])
+}
+
+model Listen {
+  id          String   @id @default(cuid())
+  userId      String
+  recordingId String
+  listenedAt  DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recording Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([recordingId])
+}
+
+model Collection {
+  id          String  @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  isPublic    Boolean @default(false)
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CollectionItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model CollectionItem {
+  id           String @id @default(cuid())
+  collectionId String
+  recordingId  String
+  position     Int    @default(0)
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  recording  Recording  @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, recordingId])
+  @@index([collectionId])
+}
+
+// ---------------------------------------------------------------------------
+// RAG: retrievable knowledge chunks for the AI assistant (Phase 4).
+// Source text (recording notes, composer bios, reviews, historical context)
+// is chunked, embedded, and retrieved to ground cited answers.
+// ---------------------------------------------------------------------------
+
+enum RagSourceType {
+  COMPOSER_BIO
+  WORK_DESCRIPTION
+  RECORDING_NOTES
+  REVIEW
+  HISTORICAL_CONTEXT
+}
+
+model RagChunk {
+  id         String        @id @default(cuid())
+  sourceType RagSourceType
+  sourceId   String? // id of the originating Composer/Work/Recording/Review, if any
+  title      String?
+  content    String
+
+  embedding Unsupported("vector(1024)")?
+
+  createdAt DateTime @default(now())
+
+  @@index([sourceType])
+}

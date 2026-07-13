@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/*
+  Cadence visual language: warm "paper" ground, ink text, a deep burgundy accent,
+  a characterful serif for display and a clean sans for UI/body. Editorial and
+  timeless rather than the generic dashboard look.
+*/
+:root {
+  --paper: #f7f4ee;
+  --paper-raised: #fffdf9;
+  --ink: #1c1917;
+  --ink-soft: #57534e;
+  --ink-faint: #8a827b;
+  --line: #e5ddd0;
+  --accent: #7c2d3a; /* burgundy */
+  --accent-soft: #a04656;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: var(--font-sans-geist);
+  --font-display: var(--font-display-fraunces);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--paper-raised);
+}
