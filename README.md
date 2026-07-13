@@ -29,10 +29,16 @@ npm install
 npm run db:up            # Postgres + pgvector in Docker
 npm run db:migrate       # apply the schema
 npm run db:seed          # load the curated classical catalog
+npm run db:enrich        # (optional) Wikipedia bios + portraits for the catalog
+npm run db:import        # (optional) import ~45 composers + recordings + cover art
+                         #            from MusicBrainz (slow, ~20 min; responses cached)
 npm run db:studio        # (optional) browse the data in Prisma Studio
 
 npm run dev --workspace web   # web app → http://localhost:3000
 ```
+
+After `db:import`, re-run `npm run ai:reindex` and `npm run ai:rag` to embed the
+expanded catalog.
 
 For the AI service (semantic search & recommendations):
 
@@ -57,3 +63,4 @@ instead, set `EMBEDDINGS_PROVIDER=voyage` (+ `VOYAGE_API_KEY`) or `=openai`.
 - [x] **Phase 2** — Catalog browse, auth (Google + dev login), reviews & ratings, mark-as-listened, collections, profile
 - [x] **Phase 3** — AI discovery: self-hosted embeddings (mxbai-embed-large, Voyage/OpenAI optional), semantic search (/search), similar recordings, personalized recommendations
 - [x] **Phase 4** — RAG assistant (`/ask`, Claude cited answers) + AI review summarization
+- [x] **Phase 5** — Real-data import: MusicBrainz catalog (~45 composers) + Cover Art Archive covers + Wikipedia bios/portraits

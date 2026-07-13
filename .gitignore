@@ -24,6 +24,10 @@ web/build/
 # Prisma
 packages/db/generated/
 
+# Import API caches
+packages/db/import/.cache/
+packages/db/import/.cache-caa/
+
 # Build / misc
 dist/
 *.log

@@ -11,12 +11,16 @@ export function CoverArt({
   size?: number;
 }) {
   if (imageUrl) {
+    // Cover Art Archive URLs redirect to dynamic archive.org CDN hosts that the
+    // Next image optimizer can't follow, so load them unoptimized (the browser
+    // follows the redirects directly).
     return (
       <Image
         src={imageUrl}
         alt={title}
         width={size}
         height={size}
+        unoptimized
         style={{ width: size, height: size }}
         className="shrink-0 rounded-md object-cover"
       />

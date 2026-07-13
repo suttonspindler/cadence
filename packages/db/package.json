@@ -11,6 +11,7 @@
     "studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "enrich": "tsx scripts/enrich.ts",
+    "import": "tsx import/import.ts",
     "format": "prisma format",
     "validate": "prisma validate"
   },

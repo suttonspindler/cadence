@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "commons.wikimedia.org" },
       { protocol: "https", hostname: "coverartarchive.org" },
       { protocol: "https", hostname: "*.coverartarchive.org" },
+      { protocol: "https", hostname: "archive.org" },
+      { protocol: "https", hostname: "*.archive.org" },
     ],
   },
 };
