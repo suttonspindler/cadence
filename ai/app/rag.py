@@ -25,6 +25,15 @@ _CHUNK_SOURCES = [
         """,
     ),
     (
+        "ARTIST_BIO",
+        """
+        SELECT a.id AS source_id,
+               a.name AS title,
+               a.name || '. ' || a.bio AS content
+        FROM "Artist" a WHERE a.bio IS NOT NULL AND a.bio <> ''
+        """,
+    ),
+    (
         "WORK_DESCRIPTION",
         """
         SELECT w.id AS source_id,

@@ -320,6 +320,7 @@ model CollectionItem {
 
 enum RagSourceType {
   COMPOSER_BIO
+  ARTIST_BIO
   WORK_DESCRIPTION
   RECORDING_NOTES
   REVIEW
