@@ -10,6 +10,7 @@
     "push": "prisma db push",
     "studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
+    "enrich-images": "tsx scripts/enrich-images.ts",
     "format": "prisma format",
     "validate": "prisma validate"
   },

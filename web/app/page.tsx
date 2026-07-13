@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@cadence/db";
 import { composerDates, eraLabel, traditionLabel } from "@/lib/format";
+import { Portrait } from "@/components/Portrait";
+import { CoverArt } from "@/components/CoverArt";
 
 // Read fresh from the DB on each request while the catalog is small.
 export const dynamic = "force-dynamic";
@@ -58,13 +60,18 @@ export default async function HomePage() {
             <li key={c.id}>
               <Link
                 href={`/composers/${c.slug}`}
-                className="block rounded-lg border border-line bg-paper-raised px-4 py-3 transition hover:border-accent-soft hover:shadow-sm"
+                className="flex h-full min-h-[88px] items-center gap-3 rounded-lg border border-line bg-paper-raised px-4 py-3 transition hover:border-accent-soft hover:shadow-sm"
               >
-                <div className="font-display text-lg">{c.name}</div>
-                <div className="mt-0.5 text-sm text-ink-faint">
-                  {eraLabel(c.era)} · {composerDates(c.birthYear, c.deathYear)} ·{" "}
-                  {c._count.works} {c._count.works === 1 ? "work" : "works"}
-                </div>
+                <Portrait name={c.name} imageUrl={c.imageUrl} size={48} />
+                <span className="min-w-0">
+                  <span className="block font-display text-lg leading-snug line-clamp-2">
+                    {c.name}
+                  </span>
+                  <span className="mt-0.5 block truncate text-sm text-ink-faint">
+                    {eraLabel(c.era)} · {composerDates(c.birthYear, c.deathYear)} ·{" "}
+                    {c._count.works} {c._count.works === 1 ? "work" : "works"}
+                  </span>
+                </span>
               </Link>
             </li>
           ))}
@@ -83,14 +90,17 @@ export default async function HomePage() {
               <li key={r.id}>
                 <Link
                   href={`/recordings/${r.slug}`}
-                  className="flex items-baseline justify-between gap-4 px-4 py-3 transition hover:bg-paper"
+                  className="flex items-center justify-between gap-4 px-4 py-3 transition hover:bg-paper"
                 >
-                  <span>
-                    <span className="font-medium">{r.work.composer.name}</span>
-                    <span className="text-ink-soft"> — {r.work.title}</span>
-                    <span className="block text-sm text-ink-faint">
-                      {performers}
-                      {r.year ? ` · ${r.year}` : ""}
+                  <span className="flex items-center gap-3">
+                    <CoverArt title={r.work.title} imageUrl={r.imageUrl} size={44} />
+                    <span>
+                      <span className="font-medium">{r.work.composer.name}</span>
+                      <span className="text-ink-soft"> — {r.work.title}</span>
+                      <span className="block text-sm text-ink-faint">
+                        {performers}
+                        {r.year ? ` · ${r.year}` : ""}
+                      </span>
                     </span>
                   </span>
                   <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-xs text-ink-soft">

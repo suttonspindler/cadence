@@ -12,6 +12,7 @@
     "db:migrate": "npm run migrate --workspace @cadence/db",
     "db:push": "npm run push --workspace @cadence/db",
     "db:seed": "npm run seed --workspace @cadence/db",
+    "db:images": "npm run enrich-images --workspace @cadence/db",
     "db:studio": "npm run studio --workspace @cadence/db",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",

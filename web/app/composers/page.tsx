@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@cadence/db";
 import { composerDates, eraLabel } from "@/lib/format";
+import { Portrait } from "@/components/Portrait";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Composers" };
@@ -19,12 +20,15 @@ export default async function ComposersPage() {
           <li key={c.id}>
             <Link
               href={`/composers/${c.slug}`}
-              className="flex items-baseline justify-between gap-4 px-5 py-4 transition hover:bg-paper"
+              className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-paper"
             >
-              <span>
-                <span className="font-display text-xl">{c.name}</span>
-                <span className="ml-3 text-sm text-ink-faint">
-                  {composerDates(c.birthYear, c.deathYear)}
+              <span className="flex items-center gap-4">
+                <Portrait name={c.name} imageUrl={c.imageUrl} size={44} />
+                <span>
+                  <span className="font-display text-xl">{c.name}</span>
+                  <span className="ml-3 text-sm text-ink-faint">
+                    {composerDates(c.birthYear, c.deathYear)}
+                  </span>
                 </span>
               </span>
               <span className="flex items-center gap-3 text-sm text-ink-soft">

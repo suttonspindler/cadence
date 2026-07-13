@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma, type CreditRole } from "@cadence/db";
@@ -9,6 +10,8 @@ import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewList } from "@/components/ReviewList";
 import { CollectionPicker } from "@/components/CollectionPicker";
 import { RecordingHitList } from "@/components/RecordingHitList";
+import { Portrait } from "@/components/Portrait";
+import { CoverArt } from "@/components/CoverArt";
 import { similarRecordings, reviewSummary } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
@@ -52,8 +55,6 @@ export default async function RecordingPage({ params }: { params: Promise<{ slug
   const agg = aggregateRating(reviews);
   const listened = Boolean(myListen);
   const similar = await similarRecordings(rec.id, 6);
-  // Auto-summarize when there are enough reviews to be worth condensing.
-  const summary = reviews.length >= 2 ? await reviewSummary(rec.id) : null;
 
   const credits = [...rec.credits].sort(
     (a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role),
@@ -65,7 +66,9 @@ export default async function RecordingPage({ params }: { params: Promise<{ slug
         ← {rec.work.title}
       </Link>
 
-      <header className="mt-4 border-b border-line pb-6">
+      <header className="mt-4 flex flex-col gap-5 border-b border-line pb-6 sm:flex-row sm:items-start">
+        <CoverArt title={rec.work.title} imageUrl={rec.imageUrl} size={128} />
+        <div>
         <p className="text-sm text-ink-faint">
           <Link href={`/composers/${rec.work.composer.slug}`} className="hover:text-accent">
             {rec.work.composer.name}
@@ -124,24 +127,26 @@ export default async function RecordingPage({ params }: { params: Promise<{ slug
             </Link>
           )}
         </div>
+        </div>
       </header>
 
       <section className="mt-8 grid gap-8 md:grid-cols-[2fr_3fr]">
         <div>
           <h2 className="mb-3 font-display text-xl font-semibold">Performers</h2>
-          <dl className="space-y-2">
+          <ul className="space-y-3">
             {credits.map((cr) => (
-              <div key={cr.id} className="flex items-baseline justify-between gap-4">
-                <dt className="text-sm text-ink-faint">{roleLabel(cr.role)}</dt>
-                <dd className="text-right">
-                  {cr.artist.name}
-                  {cr.artist.instrument && (
-                    <span className="text-ink-faint"> · {cr.artist.instrument}</span>
-                  )}
-                </dd>
-              </div>
+              <li key={cr.id} className="flex items-center gap-3">
+                <Portrait name={cr.artist.name} imageUrl={cr.artist.imageUrl} size={40} />
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{cr.artist.name}</span>
+                  <span className="block text-sm text-ink-faint">
+                    {roleLabel(cr.role)}
+                    {cr.artist.instrument ? ` · ${cr.artist.instrument}` : ""}
+                  </span>
+                </span>
+              </li>
             ))}
-          </dl>
+          </ul>
         </div>
 
         {rec.notes && (
@@ -155,13 +160,11 @@ export default async function RecordingPage({ params }: { params: Promise<{ slug
       <section className="mt-12 border-t border-line pt-8">
         <h2 className="mb-6 font-display text-2xl font-semibold">Ratings & reviews</h2>
 
-        {summary?.summary && (
-          <div className="mb-6 rounded-xl border border-accent-soft/40 bg-accent/5 p-5">
-            <p className="mb-1 text-xs font-medium uppercase tracking-widest text-accent">
-              AI summary of {summary.count} reviews
-            </p>
-            <p className="leading-relaxed text-ink-soft">{summary.summary}</p>
-          </div>
+        {/* Streamed in after the page loads so the slow Claude call never blocks navigation. */}
+        {reviews.length >= 2 && (
+          <Suspense fallback={<SummarySkeleton />}>
+            <ReviewSummary recordingId={rec.id} />
+          </Suspense>
         )}
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -197,6 +200,37 @@ export default async function RecordingPage({ params }: { params: Promise<{ slug
           <RecordingHitList hits={similar} />
         </section>
       )}
+    </div>
+  );
+}
+
+// Streamed separately so the (slow) Claude summarization call doesn't block the
+// page. Rendered inside a Suspense boundary with the skeleton below as fallback.
+async function ReviewSummary({ recordingId }: { recordingId: string }) {
+  const summary = await reviewSummary(recordingId);
+  if (!summary?.summary) return null;
+  return (
+    <div className="mb-6 rounded-xl border border-accent-soft/40 bg-accent/5 p-5">
+      <p className="mb-1 text-xs font-medium uppercase tracking-widest text-accent">
+        AI summary of {summary.count} reviews
+      </p>
+      <p className="leading-relaxed text-ink-soft">{summary.summary}</p>
+    </div>
+  );
+}
+
+function SummarySkeleton() {
+  return (
+    <div className="mb-6 rounded-xl border border-accent-soft/40 bg-accent/5 p-5">
+      <p className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-accent">
+        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        Summarizing reviews…
+      </p>
+      <div className="space-y-2">
+        <div className="h-3 w-full animate-pulse rounded bg-accent/10" />
+        <div className="h-3 w-11/12 animate-pulse rounded bg-accent/10" />
+        <div className="h-3 w-4/5 animate-pulse rounded bg-accent/10" />
+      </div>
     </div>
   );
 }

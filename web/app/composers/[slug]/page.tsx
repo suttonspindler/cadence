@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@cadence/db";
 import { composerDates, eraLabel, workSubtitle } from "@/lib/format";
+import { Portrait } from "@/components/Portrait";
 
 export const dynamic = "force-dynamic";
 
@@ -34,18 +35,21 @@ export default async function ComposerPage({ params }: { params: Promise<{ slug:
         ← Composers
       </Link>
 
-      <header className="mt-4 border-b border-line pb-6">
-        <div className="mb-2 flex items-center gap-3 text-sm text-ink-faint">
-          <span className="rounded-full border border-line px-2 py-0.5 text-xs">
-            {eraLabel(composer.era)}
-          </span>
-          <span>{composerDates(composer.birthYear, composer.deathYear)}</span>
-          {composer.nationality && <span>· {composer.nationality}</span>}
+      <header className="mt-4 flex flex-col gap-5 border-b border-line pb-6 sm:flex-row sm:items-start">
+        <Portrait name={composer.name} imageUrl={composer.imageUrl} size={112} />
+        <div>
+          <div className="mb-2 flex items-center gap-3 text-sm text-ink-faint">
+            <span className="rounded-full border border-line px-2 py-0.5 text-xs">
+              {eraLabel(composer.era)}
+            </span>
+            <span>{composerDates(composer.birthYear, composer.deathYear)}</span>
+            {composer.nationality && <span>· {composer.nationality}</span>}
+          </div>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">{composer.name}</h1>
+          {composer.bio && (
+            <p className="mt-4 max-w-2xl leading-relaxed text-ink-soft">{composer.bio}</p>
+          )}
         </div>
-        <h1 className="font-display text-4xl font-semibold tracking-tight">{composer.name}</h1>
-        {composer.bio && (
-          <p className="mt-4 max-w-2xl leading-relaxed text-ink-soft">{composer.bio}</p>
-        )}
       </header>
 
       <section className="mt-8">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { askAssistant } from "@/lib/ai";
+import { Markdown } from "@/components/Markdown";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Ask" };
@@ -114,7 +115,7 @@ function AnswerBlock({
   return (
     <div className="mt-8 space-y-6">
       <div className="rounded-xl border border-line bg-paper-raised p-6">
-        <p className="whitespace-pre-wrap leading-relaxed">{result.answer}</p>
+        <Markdown>{result.answer ?? ""}</Markdown>
       </div>
 
       {result.citations.length > 0 && (
