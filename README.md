@@ -3,8 +3,9 @@
 An **AI-enhanced classical music discovery and review platform**. Classical music is
 hard to explore because the same work exists in hundreds of recordings across
 different performers, ensembles, conductors, and performance traditions. Cadence
-models those relationships — Composer → Work → Movement → Recording — and layers
-semantic search, personalized recommendations, and a cited AI assistant on top.
+models those relationships with a three-tier classical model — Composer → Work →
+Recording (a performance) → Album (the release) — and layers semantic search,
+personalized recommendations, and a cited AI assistant on top.
 
 Built as a full-stack + AI-engineering portfolio project: complex relational data
 modeling (PostgreSQL + Prisma), a Next.js/TypeScript app, a Python AI service
@@ -15,7 +16,7 @@ modeling (PostgreSQL + Prisma), a Next.js/TypeScript app, a Python AI service
 - **Web** — Next.js (App Router) + TypeScript, Prisma ORM
 - **AI service** — FastAPI (Python): embeddings, semantic search, recommendations, RAG
 - **Database** — PostgreSQL 16 + pgvector (single source of truth)
-- **AI** — Anthropic Claude (`claude-opus-4-8`) for generation; self-hosted sentence-transformers embeddings by default (Voyage AI / OpenAI optional)
+- **AI** — Anthropic Claude for generation (assistant + review summaries), configurable via `CADENCE_LLM_MODEL` (`claude-haiku-4-5` in this project's `.env`; `claude-opus-4-8` default); self-hosted sentence-transformers embeddings by default (Voyage AI / OpenAI optional)
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design.
 
@@ -32,6 +33,8 @@ npm run db:seed          # load the curated classical catalog
 npm run db:enrich        # (optional) Wikipedia bios + portraits for the catalog
 npm run db:import        # (optional) import ~45 composers + recordings + cover art
                          #            from MusicBrainz (slow, ~20 min; responses cached)
+npm run db:seed-albums   # (optional) pin the curated seed recordings to real albums
+npm run db:enrich-traditions  # (optional) infer performance tradition for imports
 npm run db:studio        # (optional) browse the data in Prisma Studio
 
 npm run dev --workspace web   # web app → http://localhost:3000

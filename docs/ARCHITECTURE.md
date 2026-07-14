@@ -45,12 +45,20 @@ Source of truth: `packages/db/prisma/schema.prisma`.
 ```
 Composer ─< Work ─< Movement
                 └─< Recording ─< RecordingCredit >─ Artist
+                          │  └─ Album            (the release; cover art lives here)
                           ├─< Review        >─ User
                           ├─< Listen         >─ User
                           └─< CollectionItem >─ Collection >─ User
 ```
 
+Three-tier classical model (after Apple Music Classical / Presto Music): a **Work** is the
+composition, a **Recording** is one performance of it, and an **Album** is the release the
+recording appears on (collapsing reissues, ≈ a MusicBrainz release group). The Work page
+compares performances; the Album carries the cover art.
+
 - `Recording.embedding` (`vector(1024)`) powers semantic search and recommendations.
+- `Recording.tradition` (`PerformanceTradition`) — period / HIP / romantic / traditional /
+  modern — is part of the embedded document text, so it also shapes semantic search.
 - `RagChunk` holds embedded source text (bios, notes, reviews, historical context)
   for the assistant's retrieval step.
 - Ratings are multi-dimensional per the product brief: performance quality, sound
@@ -61,9 +69,10 @@ Prisma cannot express vector similarity queries, so those columns are declared a
 
 ## AI providers
 
-- **Generation** — Anthropic Claude (`claude-opus-4-8`): the RAG assistant, review
-  summarization, and recommendation reasoning. The assistant uses Claude's
-  **Citations** so answers are grounded in retrieved `RagChunk`s.
+- **Generation** — Anthropic Claude for the RAG assistant and review summarization,
+  configurable via `CADENCE_LLM_MODEL` (`claude-haiku-4-5` in this project's `.env`;
+  `claude-opus-4-8` code default). The assistant uses Claude's **Citations** so answers
+  are grounded in retrieved `RagChunk`s.
 - **Embeddings** — a self-hosted sentence-transformers model
   (`mxbai-embed-large-v1`, 1024-dim) by default: no API key, no rate limits, runs
   offline. Behind a provider interface (`EMBEDDINGS_PROVIDER`) so Voyage AI or
@@ -85,12 +94,14 @@ cadence/
 ## Build phases
 
 1. **Foundation + data model** — repo skeleton, Dockerized Postgres+pgvector, the
-   Prisma schema, and a curated seed. *(current)*
-2. **Catalog + accounts** — browse Composer → Work → Movement → Recording; auth;
-   reviews & multi-dimensional ratings; collections; listening profile.
+   Prisma schema, and a curated seed. ✅
+2. **Catalog + accounts** — browse Composer → Work → Recording → Album; auth;
+   reviews & multi-dimensional ratings; collections; listening profile. ✅
 3. **Semantic discovery** — embed recordings; vector search; recommendation engine
-   over listening history and preferences.
-4. **RAG assistant** — cited Q&A over catalog knowledge; review summarization.
+   over listening history and preferences. ✅
+4. **RAG assistant** — cited Q&A over catalog knowledge; review summarization. ✅
+5. **Real-data import** — MusicBrainz catalog, Cover Art Archive covers, Wikipedia
+   bios/portraits; three-tier albums; tradition enrichment. ✅
 
 ## Local development
 
