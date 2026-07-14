@@ -62,8 +62,7 @@ export default async function SearchPage({
         <section className="mt-8">
           {outcome.status === "rate_limited" ? (
             <p className="rounded-lg border border-line bg-paper-raised p-4 text-sm text-ink-soft">
-              The embedding provider is rate-limited right now (Voyage&apos;s free tier allows only
-              a few requests per minute). Wait a few seconds and search again.
+              The embedding service is busy right now. Wait a few seconds and search again.
             </p>
           ) : outcome.status === "unavailable" ? (
             <p className="rounded-lg border border-line bg-paper-raised p-4 text-sm text-ink-soft">
