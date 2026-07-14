@@ -23,6 +23,7 @@ import {
   getRecording,
   type MbArtist,
   type MbRecording,
+  type MbRelease,
 } from "./musicbrainz";
 
 loadEnv({ path: path.resolve(__dirname, "../../../.env") });
@@ -56,15 +57,17 @@ function yearOf(date?: string): number | null {
 }
 
 
-async function coverArtUrl(releaseMbid: string): Promise<string | null> {
-  const file = path.join(CAA_CACHE, `${releaseMbid}.json`);
+// Cover art from the Cover Art Archive, keyed by release group (preferred, so
+// all editions of an album share one cover) or a specific release.
+async function coverArt(kind: "release" | "release-group", mbid: string): Promise<string | null> {
+  const file = path.join(CAA_CACHE, `${kind}-${mbid}.json`);
   let data: { images?: { front?: boolean; image?: string; thumbnails?: Record<string, string> }[] } | null;
   if (fs.existsSync(file)) {
     const raw = fs.readFileSync(file, "utf8");
     data = raw === "null" ? null : JSON.parse(raw);
   } else {
     try {
-      const res = await fetch(`https://coverartarchive.org/release/${releaseMbid}`, {
+      const res = await fetch(`https://coverartarchive.org/${kind}/${mbid}`, {
         headers: { "User-Agent": USER_AGENT },
       });
       data = res.ok ? await res.json() : null;
@@ -126,6 +129,28 @@ async function upsertArtist(a: MbArtist, kind: ArtistKind) {
   });
 }
 
+// Upsert the Album for a recording's first release (keyed by release group).
+// Returns the album id, or null if the release has no usable group.
+async function upsertAlbum(release: MbRelease): Promise<string | null> {
+  const rgId = release["release-group"]?.id;
+  if (!rgId) return null;
+  const title = release["release-group"]?.title ?? release.title ?? "Album";
+  const cover = await coverArt("release-group", rgId);
+  const album = await prisma.album.upsert({
+    where: { musicbrainzId: rgId },
+    update: cover ? { imageUrl: cover } : {},
+    create: {
+      slug: `${slugify(title)}-${rgId.slice(0, 6)}`,
+      title,
+      year: yearOf(release.date),
+      label: release["label-info"]?.[0]?.label?.name ?? null,
+      imageUrl: cover,
+      musicbrainzId: rgId,
+    },
+  });
+  return album.id;
+}
+
 async function importComposer(spec: { name: string; era: (typeof COMPOSER_LIST)[number]["era"] }) {
   // Keep the curated display name + slug (stable, familiar English forms) and use
   // MusicBrainz only for dates/nationality/id. Avoids duplicate rows when MB's
@@ -175,38 +200,57 @@ async function importWorksAndRecordings(
   // off child numbers). Bounded so we don't probe the whole catalogue.
   for (const w of cleanWorks.slice(0, 30)) {
     if (wCount >= WORKS_PER_COMPOSER) break;
-    const stubs = await workRecordings(w.id, RECORDINGS_PER_WORK);
+    // Fetch extra performances so we can dedupe down to distinct ones.
+    const stubs = await workRecordings(w.id, 12);
     if (stubs.length === 0) continue;
 
-    const work = await prisma.work.upsert({
-      where: { musicbrainzId: w.id },
-      update: {},
-      create: {
-        slug: `${composer.slug}--${slugify(w.title)}-${w.id.slice(0, 6)}`,
-        composerId: composer.id,
-        title: w.title,
-        musicbrainzId: w.id,
-      },
-    });
-    wCount++;
+    let work: { id: string; slug: string } | null = null;
+    const seenPerformers = new Set<string>();
+    let keptForWork = 0;
 
     for (const stub of stubs) {
+      if (keptForWork >= RECORDINGS_PER_WORK) break;
       const r: MbRecording = await getRecording(stub.id);
-      const releaseId = r.releases?.[0]?.id;
-      const imageUrl = releaseId ? await coverArtUrl(releaseId) : null;
+      const credits = extractCredits(r);
+      // Dedupe reissues of the same performance: identical performer set = one recording.
+      const signature = credits
+        .map((c) => c.artist.id)
+        .sort()
+        .join(",");
+      if (!signature || seenPerformers.has(signature)) continue;
+      seenPerformers.add(signature);
+
+      // Create the work lazily, only once we know it has a real performance.
+      if (!work) {
+        work = await prisma.work.upsert({
+          where: { musicbrainzId: w.id },
+          update: {},
+          create: {
+            slug: `${composer.slug}--${slugify(w.title)}-${w.id.slice(0, 6)}`,
+            composerId: composer.id,
+            title: w.title,
+            musicbrainzId: w.id,
+          },
+        });
+        wCount++;
+      }
+
+      const release = r.releases?.[0];
+      const albumId = release ? await upsertAlbum(release) : null;
+
       const recording = await prisma.recording.upsert({
         where: { musicbrainzId: r.id },
-        update: { imageUrl },
+        update: { albumId },
         create: {
           slug: `${work.slug}--${slugify(r.title)}-${r.id.slice(0, 6)}`,
           workId: work.id,
+          albumId,
           year: yearOf(r["first-release-date"]),
           tradition: "OTHER",
-          imageUrl,
           musicbrainzId: r.id,
         },
       });
-      for (const c of extractCredits(r)) {
+      for (const c of credits) {
         const artist = await upsertArtist(c.artist, c.kind);
         await prisma.recordingCredit.upsert({
           where: {
@@ -220,6 +264,7 @@ async function importWorksAndRecordings(
           create: { recordingId: recording.id, artistId: artist.id, role: c.role },
         });
       }
+      keptForWork++;
       rCount++;
     }
   }

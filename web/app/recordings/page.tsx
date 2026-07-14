@@ -12,6 +12,7 @@ export default async function RecordingsPage() {
     include: {
       work: { include: { composer: true } },
       credits: { include: { artist: true } },
+      album: { select: { imageUrl: true } },
     },
   });
 
@@ -26,7 +27,7 @@ export default async function RecordingsPage() {
               className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-paper"
             >
               <span className="flex items-center gap-4">
-                <CoverArt title={r.work.title} imageUrl={r.imageUrl} size={48} />
+                <CoverArt title={r.work.title} imageUrl={r.album?.imageUrl ?? r.imageUrl} size={48} />
                 <span>
                   <span className="font-medium">{r.work.composer.name}</span>
                   <span className="text-ink-soft"> — {r.work.title}</span>

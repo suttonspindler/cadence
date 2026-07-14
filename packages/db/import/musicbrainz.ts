@@ -25,21 +25,42 @@ function cacheFile(pathAndQuery: string): string {
   return path.join(CACHE_DIR, `${hash}.json`);
 }
 
-/** GET a MusicBrainz endpoint (path + query, no fmt). Cached + throttled. */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** GET a MusicBrainz endpoint (path + query, no fmt). Cached, throttled, and
+ *  resilient to transient 503/429/network errors via exponential backoff. */
 export async function mbGet<T = unknown>(pathAndQuery: string): Promise<T> {
   const file = cacheFile(pathAndQuery);
   if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf8")) as T;
 
-  await throttle();
   const sep = pathAndQuery.includes("?") ? "&" : "?";
   const url = `${MB_BASE}${pathAndQuery}${sep}fmt=json`;
-  const res = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
-  if (!res.ok) throw new Error(`MusicBrainz ${res.status} for ${url}`);
-  const data = (await res.json()) as T;
 
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(data));
-  return data;
+  let delay = 2000;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await throttle();
+    let res: Response;
+    try {
+      res = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+    } catch (err) {
+      if (attempt === 4) throw err;
+      await sleep(delay);
+      delay *= 2;
+      continue;
+    }
+    if ((res.status === 503 || res.status === 429) && attempt < 4) {
+      const retryAfter = Number(res.headers.get("retry-after")) || delay / 1000;
+      await sleep(Math.min(retryAfter * 1000, 15000));
+      delay *= 2;
+      continue;
+    }
+    if (!res.ok) throw new Error(`MusicBrainz ${res.status} for ${url}`);
+    const data = (await res.json()) as T;
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(data));
+    return data;
+  }
+  throw new Error(`MusicBrainz retries exhausted for ${url}`);
 }
 
 // --- Typed shapes (only the fields we use) ---------------------------------
@@ -57,13 +78,21 @@ export type MbArtist = {
 
 export type MbWork = { id: string; title: string; type?: string };
 
+export type MbRelease = {
+  id: string;
+  title?: string;
+  date?: string;
+  "release-group"?: { id: string; title?: string };
+  "label-info"?: { label?: { name?: string } }[];
+};
+
 export type MbRecording = {
   id: string;
   title: string;
   "first-release-date"?: string;
   "artist-credit"?: { name: string; artist: MbArtist; joinphrase?: string }[];
   relations?: MbRelation[];
-  releases?: { id: string; title?: string; date?: string; "release-group"?: { id: string } }[];
+  releases?: MbRelease[];
 };
 
 export type MbRelation = {
@@ -111,7 +140,10 @@ export async function workRecordings(
   return out;
 }
 
-/** Full recording lookup: artist credits, performer/conductor relations, releases. */
+/** Full recording lookup: artist credits, performer/conductor relations, and
+ *  releases with their release-group + label (for the Album). */
 export async function getRecording(recMbid: string): Promise<MbRecording> {
-  return mbGet<MbRecording>(`/recording/${recMbid}?inc=artist-credits+artist-rels+releases`);
+  return mbGet<MbRecording>(
+    `/recording/${recMbid}?inc=artist-credits+artist-rels+releases+release-groups`,
+  );
 }

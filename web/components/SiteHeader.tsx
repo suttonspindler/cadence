@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/search", label: "Discover" },
   { href: "/ask", label: "Ask" },
   { href: "/composers", label: "Composers" },
+  { href: "/albums", label: "Albums" },
   { href: "/recordings", label: "Recordings" },
 ];
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@cadence/db";
 import { traditionLabel, workSubtitle } from "@/lib/format";
+import { CoverArt } from "@/components/CoverArt";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,10 @@ async function getWork(slug: string) {
       movements: { orderBy: { position: "asc" } },
       recordings: {
         orderBy: [{ year: "asc" }],
-        include: { credits: { include: { artist: true } } },
+        include: {
+          credits: { include: { artist: true } },
+          album: { select: { title: true, imageUrl: true } },
+        },
       },
     },
   });
@@ -77,19 +81,22 @@ export default async function WorkPage({ params }: { params: Promise<{ slug: str
             <li key={r.id}>
               <Link
                 href={`/recordings/${r.slug}`}
-                className="block rounded-lg border border-line bg-paper-raised px-5 py-4 transition hover:border-accent-soft"
+                className="flex gap-4 rounded-lg border border-line bg-paper-raised px-5 py-4 transition hover:border-accent-soft"
               >
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="font-medium">
-                    {r.credits.map((cr) => cr.artist.name).join(", ")}
+                <CoverArt title={work.title} imageUrl={r.album?.imageUrl ?? r.imageUrl} size={56} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline justify-between gap-4">
+                    <span className="font-medium">
+                      {r.credits.map((cr) => cr.artist.name).join(", ")}
+                    </span>
+                    <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-xs text-ink-soft">
+                      {traditionLabel(r.tradition)}
+                    </span>
                   </span>
-                  <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-xs text-ink-soft">
-                    {traditionLabel(r.tradition)}
+                  <span className="mt-1 block text-sm text-ink-faint">
+                    {[r.album?.title, r.year].filter(Boolean).join(" · ")}
                   </span>
-                </div>
-                <div className="mt-1 text-sm text-ink-faint">
-                  {[r.label, r.year].filter(Boolean).join(" · ")}
-                </div>
+                </span>
               </Link>
             </li>
           ))}

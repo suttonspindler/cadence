@@ -22,6 +22,7 @@ async function getRecording(slug: string) {
     include: {
       work: { include: { composer: true } },
       credits: { include: { artist: true } },
+      album: true,
     },
   });
 }
@@ -67,7 +68,7 @@ export default async function RecordingPage({ params }: { params: Promise<{ slug
       </Link>
 
       <header className="mt-4 flex flex-col gap-5 border-b border-line pb-6 sm:flex-row sm:items-start">
-        <CoverArt title={rec.work.title} imageUrl={rec.imageUrl} size={128} />
+        <CoverArt title={rec.work.title} imageUrl={rec.album?.imageUrl ?? rec.imageUrl} size={128} />
         <div>
         <p className="text-sm text-ink-faint">
           <Link href={`/composers/${rec.work.composer.slug}`} className="hover:text-accent">
@@ -78,6 +79,16 @@ export default async function RecordingPage({ params }: { params: Promise<{ slug
         <h1 className="mt-1 font-display text-4xl font-semibold tracking-tight">
           {rec.work.title}
         </h1>
+
+        {rec.album && (
+          <p className="mt-2 text-sm text-ink-soft">
+            From{" "}
+            <Link href={`/albums/${rec.album.slug}`} className="text-accent hover:underline">
+              {rec.album.title}
+            </Link>
+            {rec.album.year ? ` (${rec.album.year})` : ""}
+          </p>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
           <span className="rounded-full bg-accent px-3 py-1 text-xs font-medium text-paper-raised">

@@ -30,6 +30,7 @@ export default async function HomePage() {
       include: {
         work: { include: { composer: true } },
         credits: { include: { artist: true } },
+        album: { select: { imageUrl: true } },
       },
     }),
     prisma.composer.count({ where: { works: { some: {} } } }),
@@ -122,7 +123,7 @@ export default async function HomePage() {
                   className="flex items-center justify-between gap-4 px-4 py-3 transition hover:bg-paper"
                 >
                   <span className="flex items-center gap-3">
-                    <CoverArt title={r.work.title} imageUrl={r.imageUrl} size={44} />
+                    <CoverArt title={r.work.title} imageUrl={r.album?.imageUrl ?? r.imageUrl} size={44} />
                     <span>
                       <span className="font-medium">{r.work.composer.name}</span>
                       <span className="text-ink-soft"> — {r.work.title}</span>
