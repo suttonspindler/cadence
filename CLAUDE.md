@@ -76,8 +76,11 @@ npm run dev --workspace web  # → :3000
 - **MusicBrainz**: 1 req/sec, User-Agent required. Client caches to
   `packages/db/import/.cache/` and retries 503/429 with backoff. `inc=...+labels` on a
   recording lookup is a 400 — don't add it.
-- **Cover art**: CAA URLs redirect to dynamic archive.org hosts → rendered `unoptimized`
-  in Next (`CoverArt` / `Portrait` components).
+- **Cover art**: Cover Art Archive URLs 307-redirect to dynamic archive.org hosts and are
+  often stored as `http://`. `CoverArt` normalizes them to `https` and runs them through
+  Next's image optimizer (the optimizer follows the redirect server-side; hosts are
+  allowlisted in `next.config.ts` `images.remotePatterns`, and `minimumCacheTTL` keeps
+  optimized WebP variants cached). A music-note placeholder fades out as the cover loads.
 - **Embeddings**: self-hosted `mxbai-embed-large-v1` (1024-dim, no key, offline).
   Swapped off Voyage AI due to free-tier rate limits. Provider is behind
   `EMBEDDINGS_PROVIDER` (local / voyage / openai / hash).
@@ -89,6 +92,14 @@ npm run dev --workspace web  # → :3000
 
 Phases 1–5 complete (foundation → accounts/reviews → semantic discovery → RAG assistant →
 real-data import) plus polish: three-tier Album model, hand-pinned seed albums, tradition
-enrichment, browse pagination + filters, and account pages (profile hub,
-`/recommendations`, `/reviews`, `/listening`, `/settings`, header account dropdown).
+enrichment, browse pagination + filters, account pages (profile hub, `/recommendations`,
+`/reviews`, `/listening`, `/settings`, header account dropdown), a keyword search
+(`/find` + header search bar) alongside semantic Discover (`/search`), an `/artists/[slug]`
+page, and Next-optimized cover art.
 Catalog ≈ 44 composers / 204 works / 379 recordings / 335 albums / 562 artists, all embedded.
+
+Two search modes to keep straight: **Discover** (`/search`) is semantic (pgvector); **find**
+(`/find`, the header search bar) is strict lexical substring matching over composers / works /
+albums / artists, grouped by type. Albums are the join hub — a `Recording` attaches to an
+`Album` by the release-group MBID, so importing a recording that shares a release group with an
+existing album auto-completes that album (e.g. adding a work's other movements/couplings).

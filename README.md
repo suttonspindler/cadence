@@ -67,3 +67,4 @@ instead, set `EMBEDDINGS_PROVIDER=voyage` (+ `VOYAGE_API_KEY`) or `=openai`.
 - [x] **Phase 3** — AI discovery: self-hosted embeddings (mxbai-embed-large, Voyage/OpenAI optional), semantic search (/search), similar recordings, personalized recommendations
 - [x] **Phase 4** — RAG assistant (`/ask`, Claude cited answers) + AI review summarization
 - [x] **Phase 5** — Real-data import: MusicBrainz catalog (~45 composers) + Cover Art Archive covers + Wikipedia bios/portraits
+- [x] **Polish** — three-tier albums, tradition enrichment, browse pagination/filters, keyword search (`/find`) + header search bar alongside semantic Discover, artist pages, Next-optimized cover art, account pages (recommendations, reviews, listening, settings)

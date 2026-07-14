@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 
 function NoteIcon({ dim }: { dim: number }) {
   return (
@@ -16,10 +19,12 @@ function NoteIcon({ dim }: { dim: number }) {
   );
 }
 
-/** Square cover art for albums/recordings; music-note placeholder when absent.
- *  `fill` mode fills a responsive square parent (used in the albums grid);
- *  otherwise renders at a fixed `size`. Cover Art Archive URLs redirect to
- *  dynamic archive.org hosts, so images load unoptimized. */
+/** Square cover art for albums/recordings; a music-note placeholder shows
+ *  immediately behind the image and the cover fades in on load, so there's no
+ *  blank→pop. `fill` mode fills a responsive square parent (albums grid);
+ *  otherwise it renders at a fixed `size`. Images go through Next's optimizer
+ *  (resized, cached, WebP). Cover Art Archive URLs are normalized to https to
+ *  avoid an extra http→https redirect hop. */
 export function CoverArt({
   title,
   imageUrl,
@@ -31,38 +36,63 @@ export function CoverArt({
   size?: number;
   fill?: boolean;
 }) {
-  if (imageUrl) {
-    if (fill) {
-      // eslint-disable-next-line @next/next/no-img-element
-      return <img src={imageUrl} alt={title} loading="lazy" className="h-full w-full object-cover" />;
-    }
-    return (
-      <Image
-        src={imageUrl}
-        alt={title}
-        width={size}
-        height={size}
-        unoptimized
-        style={{ width: size, height: size }}
-        className="shrink-0 rounded-md object-cover"
-      />
-    );
-  }
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const src = imageUrl ? imageUrl.replace(/^http:\/\//, "https://") : null;
+  const showImage = src && !failed;
+
+  // The placeholder fades out as the image fades in, so it never lingers over
+  // the artwork regardless of stacking order.
+  const placeholder = (
+    <div
+      className={`absolute inset-0 flex items-center justify-center bg-accent/5 text-accent-soft transition-opacity duration-500 ${
+        loaded ? "opacity-0" : "opacity-100"
+      }`}
+    >
+      <NoteIcon dim={fill ? 40 : Math.round(size * 0.4)} />
+    </div>
+  );
+
+  const imgClass = `object-cover transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`;
+  const onLoad = () => setLoaded(true);
+  const onError = () => setFailed(true);
 
   if (fill) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-accent/5 text-accent-soft">
-        <NoteIcon dim={40} />
+      <div className="absolute inset-0">
+        {placeholder}
+        {showImage && (
+          <Image
+            src={src}
+            alt={title}
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+            onLoad={onLoad}
+            onError={onError}
+            className={imgClass}
+          />
+        )}
       </div>
     );
   }
+
   return (
     <div
       style={{ width: size, height: size }}
-      className="flex shrink-0 items-center justify-center rounded-md border border-line bg-accent/5 text-accent-soft"
-      aria-hidden="true"
+      className="relative shrink-0 overflow-hidden rounded-md"
     >
-      <NoteIcon dim={size * 0.4} />
+      {placeholder}
+      {showImage && (
+        <Image
+          src={src}
+          alt={title}
+          width={size}
+          height={size}
+          onLoad={onLoad}
+          onError={onError}
+          className={`h-full w-full ${imgClass}`}
+        />
+      )}
     </div>
   );
 }
