@@ -3,8 +3,7 @@ import { prisma, type Era, type PerformanceTradition } from "@cadence/db";
 import { getSessionUser } from "@/lib/session";
 import { eraLabel, traditionLabel } from "@/lib/format";
 import { reviewOverall } from "@/lib/ratings";
-import { recommendationsForUser } from "@/lib/ai";
-import { RecordingHitList } from "@/components/RecordingHitList";
+import { SignedOutNotice } from "@/components/SignedOutNotice";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Your profile" };
@@ -17,12 +16,15 @@ function topOf<K extends string>(counts: Map<K, number>): { key: K; count: numbe
   return best;
 }
 
-function StatTile({ value, label }: { value: number; label: string }) {
+function StatTile({ value, label, href }: { value: number; label: string; href: string }) {
   return (
-    <div className="rounded-xl border border-line bg-paper-raised px-5 py-4">
+    <Link
+      href={href}
+      className="rounded-xl border border-line bg-paper-raised px-5 py-4 transition hover:border-accent-soft"
+    >
       <div className="font-display text-3xl font-semibold">{value}</div>
       <div className="mt-1 text-sm text-ink-faint">{label}</div>
-    </div>
+    </Link>
   );
 }
 
@@ -35,20 +37,26 @@ function TasteRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SectionHeader({ title, href }: { title: string; href: string }) {
+  return (
+    <div className="mb-3 flex items-baseline justify-between">
+      <h2 className="font-display text-2xl font-semibold">{title}</h2>
+      <Link href={href} className="text-sm text-accent hover:underline">
+        View all →
+      </Link>
+    </div>
+  );
+}
+
 export default async function ProfilePage() {
   const user = await getSessionUser();
 
   if (!user?.id) {
     return (
-      <div className="max-w-md">
-        <h1 className="mb-3 font-display text-4xl font-semibold tracking-tight">Your profile</h1>
-        <p className="text-ink-soft">
-          <Link href="/signin" className="font-medium text-accent hover:underline">
-            Sign in
-          </Link>{" "}
-          to see your listening history, reviews, collections, and taste profile.
-        </p>
-      </div>
+      <SignedOutNotice
+        title="Your profile"
+        what="see your listening history, reviews, collections, and taste profile"
+      />
     );
   }
 
@@ -101,8 +109,6 @@ export default async function ProfilePage() {
   const topTradition = topOf(traditionCounts);
   const topPerformer = topOf(performerCounts);
 
-  const recommendations = await recommendationsForUser(user.id, 8);
-
   return (
     <div className="space-y-10">
       <header className="flex items-center gap-4 border-b border-line pb-6">
@@ -118,9 +124,9 @@ export default async function ProfilePage() {
       </header>
 
       <section className="grid grid-cols-3 gap-3">
-        <StatTile value={listens.length} label="Listened" />
-        <StatTile value={reviews.length} label="Reviews" />
-        <StatTile value={collections.length} label="Collections" />
+        <StatTile value={listens.length} label="Listened" href="/listening" />
+        <StatTile value={reviews.length} label="Reviews" href="/reviews" />
+        <StatTile value={collections.length} label="Collections" href="/collections" />
       </section>
 
       <section>
@@ -145,24 +151,28 @@ export default async function ProfilePage() {
         )}
       </section>
 
-      {recommendations && recommendations.length > 0 && (
-        <section>
-          <h2 className="mb-2 font-display text-2xl font-semibold">Recommended for you</h2>
-          <p className="mb-4 text-sm text-ink-soft">
-            Based on your listening history — recordings near your taste that you haven&apos;t
-            heard yet.
-          </p>
-          <RecordingHitList hits={recommendations} />
-        </section>
-      )}
+      <section>
+        <Link
+          href="/recommendations"
+          className="flex items-center justify-between gap-4 rounded-xl border border-line bg-paper-raised px-5 py-4 transition hover:border-accent-soft"
+        >
+          <span>
+            <span className="font-display text-lg font-semibold">Recommended for you</span>
+            <span className="mt-0.5 block text-sm text-ink-faint">
+              Recordings near your taste, chosen by meaning.
+            </span>
+          </span>
+          <span className="shrink-0 text-accent">→</span>
+        </Link>
+      </section>
 
       <section>
-        <h2 className="mb-3 font-display text-2xl font-semibold">Recently listened</h2>
+        <SectionHeader title="Recently listened" href="/listening" />
         {listens.length === 0 ? (
           <p className="text-ink-soft">Nothing yet.</p>
         ) : (
           <ul className="divide-y divide-line rounded-lg border border-line bg-paper-raised">
-            {listens.slice(0, 8).map((l) => (
+            {listens.slice(0, 5).map((l) => (
               <li key={l.id}>
                 <Link
                   href={`/recordings/${l.recording.slug}`}
@@ -178,12 +188,12 @@ export default async function ProfilePage() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-display text-2xl font-semibold">Your reviews</h2>
+        <SectionHeader title="Your reviews" href="/reviews" />
         {reviews.length === 0 ? (
           <p className="text-ink-soft">No reviews yet.</p>
         ) : (
           <ul className="divide-y divide-line rounded-lg border border-line bg-paper-raised">
-            {reviews.map((r) => {
+            {reviews.slice(0, 5).map((r) => {
               const overall = reviewOverall(r);
               return (
                 <li key={r.id}>
@@ -210,7 +220,7 @@ export default async function ProfilePage() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-display text-2xl font-semibold">Collections</h2>
+        <SectionHeader title="Collections" href="/collections" />
         {collections.length === 0 ? (
           <p className="text-ink-soft">
             No collections yet.{" "}
@@ -221,7 +231,7 @@ export default async function ProfilePage() {
           </p>
         ) : (
           <ul className="grid gap-3">
-            {collections.map((c) => (
+            {collections.slice(0, 5).map((c) => (
               <li key={c.id}>
                 <Link
                   href={`/collections/${c.id}`}

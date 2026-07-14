@@ -35,7 +35,7 @@ if (devLoginEnabled) {
   );
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   adapter: PrismaAdapter(prisma),
   // Credentials (dev login) requires JWT sessions; Google users are still
   // persisted to the DB via the adapter on sign-in.
@@ -44,8 +44,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/signin" },
   providers,
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) token.uid = user.id;
+      // Reflect a display-name change (Settings page) without re-login.
+      if (trigger === "update" && typeof session?.user?.name === "string") {
+        token.name = session.user.name;
+      }
       return token;
     },
     async session({ session, token }) {

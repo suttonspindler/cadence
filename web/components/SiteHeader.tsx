@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOutAction } from "@/lib/auth-actions";
 
 type SessionUser = { name?: string | null; email?: string | null } | null;
@@ -14,10 +14,42 @@ const NAV_LINKS = [
   { href: "/recordings", label: "Recordings" },
 ];
 
+// Account menu — everything personal, kept out of the main browse nav.
+const ACCOUNT_LINKS = [
+  { href: "/profile", label: "Profile" },
+  { href: "/recommendations", label: "Recommendations" },
+  { href: "/collections", label: "Collections" },
+  { href: "/reviews", label: "Your reviews" },
+  { href: "/listening", label: "Listening history" },
+  { href: "/settings", label: "Settings" },
+];
+
 export function SiteHeader({ user }: { user: SessionUser }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false); // mobile menu
+  const [menuOpen, setMenuOpen] = useState(false); // account dropdown
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const close = () => setOpen(false);
+  const closeMenu = () => setMenuOpen(false);
   const displayName = user?.name ?? user?.email ?? null;
+  const initial = (user?.name ?? user?.email ?? "?").charAt(0).toUpperCase();
+
+  // Close the account dropdown on outside click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   return (
     <header className="border-b border-line bg-paper-raised/70 backdrop-blur">
@@ -39,19 +71,57 @@ export function SiteHeader({ user }: { user: SessionUser }) {
             </Link>
           ))}
           {user ? (
-            <>
-              <Link href="/collections" className="hover:text-accent">
-                Collections
-              </Link>
-              <Link href="/profile" className="text-ink-faint hover:text-accent">
-                {displayName}
-              </Link>
-              <form action={signOutAction}>
-                <button type="submit" className="hover:text-accent">
-                  Sign out
-                </button>
-              </form>
-            </>
+            <div
+              ref={menuRef}
+              className="relative"
+              onMouseEnter={() => setMenuOpen(true)}
+              onMouseLeave={() => setMenuOpen(false)}
+            >
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex items-center gap-2 rounded-full py-0.5 pl-0.5 pr-2 text-ink-soft transition hover:text-accent"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-sm font-display font-semibold text-paper-raised">
+                  {initial}
+                </span>
+                <span className="max-w-[10rem] truncate">{displayName}</span>
+                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" className={menuOpen ? "rotate-180 transition" : "transition"}>
+                  <path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+
+              {menuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-lg border border-line bg-paper-raised py-1 shadow-lg shadow-black/5"
+                >
+                  {ACCOUNT_LINKS.map((l) => (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      role="menuitem"
+                      onClick={closeMenu}
+                      className="block px-4 py-2 text-sm text-ink-soft transition hover:bg-paper hover:text-accent"
+                    >
+                      {l.label}
+                    </Link>
+                  ))}
+                  <div className="my-1 border-t border-line" />
+                  <form action={signOutAction}>
+                    <button
+                      type="submit"
+                      role="menuitem"
+                      className="block w-full px-4 py-2 text-left text-sm text-ink-soft transition hover:bg-paper hover:text-accent"
+                    >
+                      Sign out
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
           ) : (
             <Link
               href="/signin"
@@ -89,27 +159,26 @@ export function SiteHeader({ user }: { user: SessionUser }) {
                 key={l.href}
                 href={l.href}
                 onClick={close}
-                className="border-b border-line/60 py-3 text-ink-soft last:border-0 hover:text-accent"
+                className="border-b border-line/60 py-3 text-ink-soft hover:text-accent"
               >
                 {l.label}
               </Link>
             ))}
             {user ? (
               <>
-                <Link
-                  href="/collections"
-                  onClick={close}
-                  className="border-b border-line/60 py-3 text-ink-soft hover:text-accent"
-                >
-                  Collections
-                </Link>
-                <Link
-                  href="/profile"
-                  onClick={close}
-                  className="border-b border-line/60 py-3 text-ink-soft hover:text-accent"
-                >
-                  Profile{displayName ? ` (${displayName})` : ""}
-                </Link>
+                <div className="px-0 pb-1 pt-4 text-xs uppercase tracking-widest text-ink-faint">
+                  {displayName}
+                </div>
+                {ACCOUNT_LINKS.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={close}
+                    className="border-b border-line/60 py-3 text-ink-soft hover:text-accent"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
                 <form action={signOutAction} className="py-3">
                   <button type="submit" className="text-ink-soft hover:text-accent">
                     Sign out
