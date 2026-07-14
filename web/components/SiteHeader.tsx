@@ -64,12 +64,21 @@ export function SiteHeader({ user }: { user: SessionUser }) {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden items-center gap-6 text-sm text-ink-soft md:flex">
+        <nav className="hidden items-center gap-5 text-sm text-ink-soft md:flex">
           {NAV_LINKS.map((l) => (
             <Link key={l.href} href={l.href} className="hover:text-accent">
               {l.label}
             </Link>
           ))}
+          <form action="/find" method="get" role="search">
+            <input
+              name="q"
+              type="search"
+              placeholder="Search…"
+              aria-label="Search the catalog"
+              className="w-36 rounded-full border border-line bg-paper px-3.5 py-1.5 text-sm text-ink outline-none transition focus:w-52 focus:border-accent-soft lg:w-40"
+            />
+          </form>
           {user ? (
             <div
               ref={menuRef}
@@ -87,7 +96,7 @@ export function SiteHeader({ user }: { user: SessionUser }) {
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-sm font-display font-semibold text-paper-raised">
                   {initial}
                 </span>
-                <span className="max-w-[10rem] truncate">{displayName}</span>
+                <span className="hidden max-w-[10rem] truncate lg:inline">{displayName}</span>
                 <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" className={menuOpen ? "rotate-180 transition" : "transition"}>
                   <path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -159,6 +168,15 @@ export function SiteHeader({ user }: { user: SessionUser }) {
       {open && (
         <nav className="border-t border-line md:hidden">
           <div className="mx-auto flex max-w-5xl flex-col px-6 py-2">
+            <form action="/find" method="get" role="search" onSubmit={close} className="py-3">
+              <input
+                name="q"
+                type="search"
+                placeholder="Search the catalog…"
+                aria-label="Search the catalog"
+                className="w-full rounded-lg border border-line bg-paper px-4 py-2.5 text-sm outline-none focus:border-accent-soft"
+              />
+            </form>
             {NAV_LINKS.map((l) => (
               <Link
                 key={l.href}
