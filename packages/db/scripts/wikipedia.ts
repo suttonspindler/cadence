@@ -31,4 +31,15 @@ export async function wikipediaSummary(title: string): Promise<WikiSummary | nul
   }
 }
 
+/** Composer-aware lookup: prefer the "(composer)" disambiguation page so names
+ *  that collide with a more famous person (e.g. "John Adams" the US president)
+ *  resolve to the composer. Falls back to the bare name. */
+export async function composerSummary(name: string): Promise<WikiSummary | null> {
+  for (const title of [`${name} (composer)`, name]) {
+    const s = await wikipediaSummary(title);
+    if (s?.extract) return s;
+  }
+  return null;
+}
+
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

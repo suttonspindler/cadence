@@ -7,7 +7,7 @@
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { prisma } from "@cadence/db";
-import { wikipediaSummary, sleep } from "./wikipedia";
+import { wikipediaSummary, composerSummary, sleep } from "./wikipedia";
 
 loadEnv({ path: path.resolve(__dirname, "../../../.env") });
 
@@ -17,7 +17,7 @@ async function main() {
   let cBio = 0;
   let cImg = 0;
   for (const c of composers) {
-    const s = await wikipediaSummary(c.name);
+    const s = await composerSummary(c.name);
     if (s) {
       const data: { bio?: string; imageUrl?: string } = {};
       if (s.extract) {

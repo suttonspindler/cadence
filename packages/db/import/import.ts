@@ -14,7 +14,7 @@ import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { prisma, type ArtistKind, type CreditRole } from "@cadence/db";
 import { COMPOSER_LIST } from "./composers";
-import { wikipediaSummary } from "../scripts/wikipedia";
+import { composerSummary } from "../scripts/wikipedia";
 import {
   searchComposer,
   worksByComposer,
@@ -140,7 +140,7 @@ async function importComposer(spec: { name: string; era: (typeof COMPOSER_LIST)[
   // MusicBrainz only for dates/nationality/id. Avoids duplicate rows when MB's
   // canonical name differs (e.g. "Fryderyk Chopin" vs "Frédéric Chopin").
   const mb = await searchComposer(spec.name);
-  const wiki = await wikipediaSummary(spec.name);
+  const wiki = await composerSummary(spec.name);
   const slug = slugify(spec.name);
 
   const base = {
