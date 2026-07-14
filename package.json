@@ -21,7 +21,8 @@
     "ai:dev": "cd ai && ./.venv/bin/uvicorn app.main:app --reload --port 8000",
     "ai:reindex": "cd ai && ./.venv/bin/python -c \"from app.reindex import reindex_recordings as r; print(r())\"",
     "ai:rag": "cd ai && ./.venv/bin/python -c \"from app.rag import build_chunks as b; print(b())\"",
-    "db:seed-albums": "npm run seed-albums --workspace @cadence/db"
+    "db:seed-albums": "npm run seed-albums --workspace @cadence/db",
+    "db:enrich-traditions": "npm run enrich-traditions --workspace @cadence/db"
   },
   "engines": {
     "node": ">=20"

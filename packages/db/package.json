@@ -14,7 +14,8 @@
     "import": "tsx import/import.ts",
     "format": "prisma format",
     "validate": "prisma validate",
-    "seed-albums": "tsx scripts/backfill-seed-albums.ts"
+    "seed-albums": "tsx scripts/backfill-seed-albums.ts",
+    "enrich-traditions": "tsx scripts/enrich-traditions.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1"
