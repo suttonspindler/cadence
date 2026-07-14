@@ -94,31 +94,36 @@ export function SiteHeader({ user }: { user: SessionUser }) {
               </button>
 
               {menuOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-lg border border-line bg-paper-raised py-1 shadow-lg shadow-black/5"
-                >
-                  {ACCOUNT_LINKS.map((l) => (
-                    <Link
-                      key={l.href}
-                      href={l.href}
-                      role="menuitem"
-                      onClick={closeMenu}
-                      className="block px-4 py-2 text-sm text-ink-soft transition hover:bg-paper hover:text-accent"
-                    >
-                      {l.label}
-                    </Link>
-                  ))}
-                  <div className="my-1 border-t border-line" />
-                  <form action={signOutAction}>
-                    <button
-                      type="submit"
-                      role="menuitem"
-                      className="block w-full px-4 py-2 text-left text-sm text-ink-soft transition hover:bg-paper hover:text-accent"
-                    >
-                      Sign out
-                    </button>
-                  </form>
+                // Panel touches the button (top-full) with the visual gap as
+                // transparent padding inside the hover area — no dead zone
+                // between trigger and menu that would fire onMouseLeave.
+                <div className="absolute right-0 top-full z-50 w-52 pt-2">
+                  <div
+                    role="menu"
+                    className="overflow-hidden rounded-lg border border-line bg-paper-raised py-1 shadow-lg shadow-black/5"
+                  >
+                    {ACCOUNT_LINKS.map((l) => (
+                      <Link
+                        key={l.href}
+                        href={l.href}
+                        role="menuitem"
+                        onClick={closeMenu}
+                        className="block px-4 py-2 text-sm text-ink-soft transition hover:bg-paper hover:text-accent"
+                      >
+                        {l.label}
+                      </Link>
+                    ))}
+                    <div className="my-1 border-t border-line" />
+                    <form action={signOutAction}>
+                      <button
+                        type="submit"
+                        role="menuitem"
+                        className="block w-full px-4 py-2 text-left text-sm text-ink-soft transition hover:bg-paper hover:text-accent"
+                      >
+                        Sign out
+                      </button>
+                    </form>
+                  </div>
                 </div>
               )}
             </div>
