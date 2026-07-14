@@ -4,15 +4,26 @@ import { composerDates, eraLabel, traditionLabel } from "@/lib/format";
 import { Portrait } from "@/components/Portrait";
 import { CoverArt } from "@/components/CoverArt";
 
-// Read fresh from the DB on each request while the catalog is small.
 export const dynamic = "force-dynamic";
 
+// A recognizable starter set to feature on the home page; the full list lives at
+// /composers. (No play-count data yet, so this is curated rather than computed.)
+const FEATURED_SLUGS = [
+  "johann-sebastian-bach",
+  "wolfgang-amadeus-mozart",
+  "ludwig-van-beethoven",
+  "frederic-chopin",
+  "pyotr-ilyich-tchaikovsky",
+  "antonio-vivaldi",
+];
+
 export default async function HomePage() {
-  const [composers, recordings, composerCount, workCount, recordingCount] = await Promise.all([
-    prisma.composer.findMany({
-      orderBy: { sortName: "asc" },
-      include: { _count: { select: { works: true } } },
-    }),
+  const [featuredComposers, recordings, composerCount, workCount, recordingCount] =
+    await Promise.all([
+      prisma.composer.findMany({
+        where: { slug: { in: FEATURED_SLUGS } },
+        include: { _count: { select: { works: true } } },
+      }),
     prisma.recording.findMany({
       take: 6,
       orderBy: { createdAt: "asc" },
@@ -25,6 +36,11 @@ export default async function HomePage() {
     prisma.work.count(),
     prisma.recording.count(),
   ]);
+
+  // Preserve the curated featured order.
+  const composers = FEATURED_SLUGS.map((slug) =>
+    featuredComposers.find((c) => c.slug === slug),
+  ).filter((c): c is (typeof featuredComposers)[number] => Boolean(c));
 
   return (
     <div className="space-y-16">
@@ -54,7 +70,14 @@ export default async function HomePage() {
       </section>
 
       <section>
-        <h2 className="mb-5 font-display text-2xl font-semibold">Composers</h2>
+        <Link
+          href="/composers"
+          className="group mb-5 inline-flex items-baseline gap-1.5 hover:text-accent"
+        >
+          <h2 className="font-display text-2xl font-semibold">Composers</h2>
+          <span className="text-accent transition group-hover:translate-x-0.5">›</span>
+          <span className="ml-1 text-sm text-ink-faint">all {composerCount}</span>
+        </Link>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {composers.map((c) => (
             <li key={c.id}>
@@ -79,7 +102,13 @@ export default async function HomePage() {
       </section>
 
       <section>
-        <h2 className="mb-5 font-display text-2xl font-semibold">Recently added recordings</h2>
+        <Link
+          href="/recordings"
+          className="group mb-5 inline-flex items-baseline gap-1.5 hover:text-accent"
+        >
+          <h2 className="font-display text-2xl font-semibold">Recently added recordings</h2>
+          <span className="text-accent transition group-hover:translate-x-0.5">›</span>
+        </Link>
         <ul className="divide-y divide-line rounded-lg border border-line bg-paper-raised">
           {recordings.map((r) => {
             const performers = r.credits
