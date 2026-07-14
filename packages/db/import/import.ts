@@ -14,6 +14,7 @@ import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { prisma, type ArtistKind, type CreditRole } from "@cadence/db";
 import { COMPOSER_LIST } from "./composers";
+import { isMovementLike } from "./filters";
 import { composerSummary } from "../scripts/wikipedia";
 import {
   searchComposer,
@@ -54,16 +55,6 @@ function yearOf(date?: string): number | null {
   return m ? parseInt(m[1], 10) : null;
 }
 
-// MusicBrainz models individual movements/arias/scenes as separate "works".
-// Skip those so we import top-level works, not fragments like
-// "Hail! Bright Cecilia: III. Hark! Hark!".
-function isMovementLike(title: string): boolean {
-  return (
-    /:\s*[IVXLCDM]+\.?\s/i.test(title) || // ": III. ..."
-    /:\s*No\.\s*\d/i.test(title) || //       ": No. 3"
-    /:\s*(Act|Scene|Aria|Var(iation)?)\b/i.test(title)
-  );
-}
 
 async function coverArtUrl(releaseMbid: string): Promise<string | null> {
   const file = path.join(CAA_CACHE, `${releaseMbid}.json`);
@@ -175,13 +166,18 @@ async function importWorksAndRecordings(
     return { works: 0, recordings: 0, skipped: true };
   }
 
-  const works = (await worksByComposer(mbid, 100))
-    .filter((w) => !isMovementLike(w.title))
-    .slice(0, WORKS_PER_COMPOSER);
+  const cleanWorks = (await worksByComposer(mbid, 100)).filter((w) => !isMovementLike(w.title));
   let wCount = 0;
   let rCount = 0;
 
-  for (const w of works) {
+  // Check works in order; keep the first WORKS_PER_COMPOSER that actually have
+  // recordings (skip empty top-level works, e.g. operas whose recordings hang
+  // off child numbers). Bounded so we don't probe the whole catalogue.
+  for (const w of cleanWorks.slice(0, 30)) {
+    if (wCount >= WORKS_PER_COMPOSER) break;
+    const stubs = await workRecordings(w.id, RECORDINGS_PER_WORK);
+    if (stubs.length === 0) continue;
+
     const work = await prisma.work.upsert({
       where: { musicbrainzId: w.id },
       update: {},
@@ -194,7 +190,6 @@ async function importWorksAndRecordings(
     });
     wCount++;
 
-    const stubs = await workRecordings(w.id, RECORDINGS_PER_WORK);
     for (const stub of stubs) {
       const r: MbRecording = await getRecording(stub.id);
       const releaseId = r.releases?.[0]?.id;

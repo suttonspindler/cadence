@@ -8,6 +8,7 @@ export const metadata = { title: "Composers" };
 
 export default async function ComposersPage() {
   const composers = await prisma.composer.findMany({
+    where: { works: { some: {} } }, // only composers with at least one work
     orderBy: { sortName: "asc" },
     include: { _count: { select: { works: true } } },
   });

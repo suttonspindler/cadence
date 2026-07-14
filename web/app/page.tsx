@@ -32,7 +32,7 @@ export default async function HomePage() {
         credits: { include: { artist: true } },
       },
     }),
-    prisma.composer.count(),
+    prisma.composer.count({ where: { works: { some: {} } } }),
     prisma.work.count(),
     prisma.recording.count(),
   ]);
