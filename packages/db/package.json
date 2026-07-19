@@ -16,7 +16,8 @@
     "validate": "prisma validate",
     "seed-albums": "tsx scripts/backfill-seed-albums.ts",
     "enrich-traditions": "tsx scripts/enrich-traditions.ts",
-    "complete-album": "tsx scripts/complete-album.ts"
+    "complete-album": "tsx scripts/complete-album.ts",
+    "complete-albums": "tsx scripts/complete-albums-sweep.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1"
