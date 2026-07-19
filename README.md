@@ -68,3 +68,5 @@ instead, set `EMBEDDINGS_PROVIDER=voyage` (+ `VOYAGE_API_KEY`) or `=openai`.
 - [x] **Phase 4** — RAG assistant (`/ask`, Claude cited answers) + AI review summarization
 - [x] **Phase 5** — Real-data import: MusicBrainz catalog (~45 composers) + Cover Art Archive covers + Wikipedia bios/portraits
 - [x] **Polish** — three-tier albums, tradition enrichment, browse pagination/filters, keyword search (`/find`) + header search bar alongside semantic Discover, artist pages, Next-optimized cover art, account pages (recommendations, reviews, listening, settings)
+- [x] **Data quality** — album-completion importer (`db:complete-album`), junk-album cleanup (`db:clean-junk-albums`), and a best-release picker in the importer; catalog ≈45 composers / 373 recordings / 241 albums
+- [ ] **Curated completion** (next) — complete ~15 canonical albums; extend the completer to create album rows for releases not yet in the catalog

@@ -51,6 +51,9 @@ npm run db:enrich            # Wikipedia bios + portraits
 npm run db:import            # MusicBrainz catalog + Cover Art Archive (slow, cached)
 npm run db:seed-albums       # pin the 13 seed recordings to hand-verified albums
 npm run db:enrich-traditions # infer PerformanceTradition for imported recordings
+npm run db:complete-album <release-group-mbid>   # fill an album's full tracklist (dedup vs existing)
+npm run db:complete-albums   # sweep partial albums (dry-run default; --apply to write)
+npm run db:clean-junk-albums # remove compilation/non-album junk albums (--apply; Live = review)
 npm run db:studio            # Prisma Studio
 
 # AI (ai/) — run after any catalog change
@@ -96,10 +99,51 @@ enrichment, browse pagination + filters, account pages (profile hub, `/recommend
 `/reviews`, `/listening`, `/settings`, header account dropdown), a keyword search
 (`/find` + header search bar) alongside semantic Discover (`/search`), an `/artists/[slug]`
 page, and Next-optimized cover art.
-Catalog ≈ 44 composers / 204 works / 379 recordings / 335 albums / 562 artists, all embedded.
+Catalog ≈ 45 composers / 204 works / 373 recordings / 241 albums / 557 artists, all embedded
+(after a junk-album cleanup — see below).
 
 Two search modes to keep straight: **Discover** (`/search`) is semantic (pgvector); **find**
 (`/find`, the header search bar) is strict lexical substring matching over composers / works /
 albums / artists, grouped by type. Albums are the join hub — a `Recording` attaches to an
 `Album` by the release-group MBID, so importing a recording that shares a release group with an
 existing album auto-completes that album (e.g. adding a work's other movements/couplings).
+
+## Data quality & catalog growth (read before importing more)
+
+The composer-first import (`db:import`) is **breadth-first and noisy**: it walks composers →
+a few works → a few performances, and historically attached each recording to its *first*
+release — often a compilation or amateur/live release. This produced junk associations
+(e.g. John Adams *China Gates* on a Drum Corps show) and some junk works. Two things address it:
+
+- **Upstream fix (done):** the importer now scores releases and picks the most album-like one,
+  and skips performances that only appear on compilations. It can't undo a recording that only
+  exists on a bad release — that's what cleanup/curation are for.
+- **Cleanup (done):** `db:clean-junk-albums` classified all albums and removed 87 compilation/
+  non-album albums (recordings kept, **detached** → album-less) plus 7 hand-reviewed junk Live
+  albums. Live albums are ambiguous by type, so it only *reports* them for manual review.
+
+**Album completion** is the quality-growth path. `db:complete-album <rg-mbid>` pulls a release's
+full tracklist, collapses movement tracks into their parent work (via MB `parts` rels), creates
+one Recording per work, and attaches it to the album — de-duping against existing recordings by
+`workKey (genre+number) | primary-performer surname`, so hand-seeded recordings aren't copied.
+It creates composers it doesn't have (era from birth year, bio from Wikipedia). Proven on the
+Kleiber Beethoven 5 & 7 album (added the 7th, kept the seed 5th). `db:complete-albums` sweeps
+partial albums with guardrails — **but a blanket sweep is the wrong move**: the dry-run showed
+most single-recording albums are arbitrary associations, so completion should target *curated*
+release groups, not swept indiscriminately.
+
+## Next / considerations for future development
+
+- **Curated completion (paused, next up):** pick ~15 canonical release groups and complete them.
+  Needs a small extension — `completeAlbum()` currently *bails if the album isn't already in the
+  DB*; to add famous albums we don't have yet, first create the Album row from the release group,
+  then complete. The curation (which albums) is a content decision worth confirming with the user.
+- **101 detached recordings** are now album-less (real works, lost their junk compilation album).
+  Curated completion could re-home some; otherwise they show under works/composers without a cover.
+- **Junk works/recordings** beyond albums (e.g. a spurious work by a mis-matched composer) are
+  only partially cleaned — detection is fuzzy and was done by hand for the obvious cases.
+- **Work-title consistency:** completion uses MB's verbose titles ("Symphony no. 5 in C minor,
+  op. 67") next to clean seed titles ("Symphony No. 5"). Normalizing is a nice-to-have.
+- **Deploy checklist** lives in the conversation history / could be moved to `docs/DEPLOYMENT.md`;
+  blockers: disable dev-login in prod, rotate keys, protect the AI service, managed pgvector,
+  decide AI-service hosting (local embedding model needs an always-on container).
