@@ -24,7 +24,8 @@
     "db:seed-albums": "npm run seed-albums --workspace @cadence/db",
     "db:enrich-traditions": "npm run enrich-traditions --workspace @cadence/db",
     "db:complete-album": "npm run complete-album --workspace @cadence/db",
-    "db:complete-albums": "npm run complete-albums --workspace @cadence/db"
+    "db:complete-albums": "npm run complete-albums --workspace @cadence/db",
+    "db:clean-junk-albums": "npm run clean-junk-albums --workspace @cadence/db"
   },
   "engines": {
     "node": ">=20"
