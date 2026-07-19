@@ -82,7 +82,12 @@ export type MbRelease = {
   id: string;
   title?: string;
   date?: string;
-  "release-group"?: { id: string; title?: string };
+  "release-group"?: {
+    id: string;
+    title?: string;
+    "primary-type"?: string;
+    "secondary-types"?: string[];
+  };
   "label-info"?: { label?: { name?: string } }[];
 };
 

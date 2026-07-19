@@ -87,6 +87,31 @@ function artistKind(a: MbArtist): ArtistKind {
   return a.type === "Group" || a.type === "Orchestra" || a.type === "Choir" ? "ENSEMBLE" : "PERSON";
 }
 
+// Score a release by how "real album" it looks (studio Album ≫ Compilation).
+function releaseScore(r: MbRelease): number {
+  const rg = r["release-group"];
+  const sec = rg?.["secondary-types"] ?? [];
+  let s = 0;
+  if (rg?.["primary-type"] === "Album") s += 3;
+  if (sec.length === 0) s += 2;
+  if (sec.includes("Compilation")) s -= 5;
+  if (sec.includes("Live")) s -= 1;
+  if (r.date) s += 1;
+  return s;
+}
+
+// Pick the most album-like release for a recording (instead of just the first).
+function pickBestRelease(releases?: MbRelease[]): MbRelease | null {
+  if (!releases?.length) return null;
+  return [...releases].sort((a, b) => releaseScore(b) - releaseScore(a))[0];
+}
+
+// A recording whose only releases are compilations isn't a real album track — skip it.
+function isCompilationOnly(releases?: MbRelease[]): boolean {
+  if (!releases?.length) return false;
+  return releases.every((r) => (r["release-group"]?.["secondary-types"] ?? []).includes("Compilation"));
+}
+
 function extractCredits(r: MbRecording): { artist: MbArtist; kind: ArtistKind; role: CreditRole }[] {
   const out: { artist: MbArtist; kind: ArtistKind; role: CreditRole }[] = [];
   const seen = new Set<string>();
@@ -211,6 +236,9 @@ async function importWorksAndRecordings(
     for (const stub of stubs) {
       if (keptForWork >= RECORDINGS_PER_WORK) break;
       const r: MbRecording = await getRecording(stub.id);
+      // Skip performances that only ever appear on compilations — they're not
+      // real album tracks (avoids attaching works to junk "albums").
+      if (isCompilationOnly(r.releases)) continue;
       const credits = extractCredits(r);
       // Dedupe reissues of the same performance: identical performer set = one recording.
       const signature = credits
@@ -235,7 +263,7 @@ async function importWorksAndRecordings(
         wCount++;
       }
 
-      const release = r.releases?.[0];
+      const release = pickBestRelease(r.releases);
       const albumId = release ? await upsertAlbum(release) : null;
 
       const recording = await prisma.recording.upsert({
