@@ -5,7 +5,11 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@cadence/db";
 
 export const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
-export const devLoginEnabled = process.env.ENABLE_DEV_LOGIN === "true";
+// Passwordless dev login is opt-in AND hard-disabled in production, so a
+// misconfigured deploy (ENABLE_DEV_LOGIN accidentally "true") can never expose
+// login-as-anyone. Google OAuth is the only production sign-in path.
+export const devLoginEnabled =
+  process.env.ENABLE_DEV_LOGIN === "true" && process.env.NODE_ENV !== "production";
 
 const providers: NextAuthConfig["providers"] = [];
 

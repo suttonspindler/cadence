@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     voyage_api_key: str | None = None
     openai_api_key: str | None = None
 
+    # Shared secret guarding this service's HTTP endpoints. When set, callers
+    # (the web app) must send it as the `X-API-Key` header; when unset (local
+    # dev) the service is open. See main.py's api_key_guard middleware.
+    ai_service_key: str | None = None
+
     # Generation (RAG assistant, review summaries) via Claude.
     anthropic_api_key: str | None = None
     llm_model: str = Field(default="claude-opus-4-8", validation_alias="CADENCE_LLM_MODEL")

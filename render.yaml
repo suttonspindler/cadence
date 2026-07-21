@@ -1,0 +1,63 @@
+# Render Blueprint — deploys Cadence's web + AI services on the free tier.
+# Postgres is NOT defined here: Render's free Postgres is deleted after 30 days,
+# so the database lives on Neon (free, pgvector, non-expiring). See docs/DEPLOYMENT.md.
+#
+# Secrets are marked `sync: false` — Render prompts for them on first deploy and
+# never stores them in git. Fill them from the Neon/Voyage/Google/Anthropic setup.
+services:
+  # ---- Next.js web app ----------------------------------------------------
+  - type: web
+    name: cadence-web
+    runtime: node
+    plan: free
+    # Built from the repo root so npm workspaces (@cadence/db) resolve. Prisma
+    # client is generated before the Next build.
+    buildCommand: npm install && npm run db:generate && npm run build --workspace web
+    startCommand: npm start --workspace web -- -p $PORT
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL # Neon pooled connection string
+        sync: false
+      - key: AUTH_SECRET # openssl rand -base64 33
+        sync: false
+      - key: AUTH_URL # https://cadence-web.onrender.com (this service's URL)
+        sync: false
+      - key: AUTH_GOOGLE_ID
+        sync: false
+      - key: AUTH_GOOGLE_SECRET
+        sync: false
+      - key: AI_SERVICE_URL # https://cadence-ai.onrender.com
+        sync: false
+      - key: AI_SERVICE_KEY # shared secret; must match cadence-ai
+        sync: false
+      # ENABLE_DEV_LOGIN is intentionally left unset in production. Even if set,
+      # web/auth.ts hard-disables dev login when NODE_ENV=production.
+
+  # ---- FastAPI AI service (embeddings, search, recs, RAG) -----------------
+  - type: web
+    name: cadence-ai
+    runtime: python
+    plan: free
+    rootDir: ai
+    buildCommand: pip install -r requirements-prod.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL # same Neon connection string as the web service
+        sync: false
+      - key: EMBEDDINGS_PROVIDER
+        value: voyage
+      - key: EMBEDDINGS_MODEL
+        value: voyage-3.5 # 1024-dim, matches the pgvector column
+      - key: EMBEDDINGS_DIM
+        value: "1024"
+      - key: VOYAGE_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY # generation (assistant, review summaries)
+        sync: false
+      - key: CADENCE_LLM_MODEL
+        value: claude-haiku-4-5
+      - key: AI_SERVICE_KEY # shared secret; must match cadence-web
+        sync: false

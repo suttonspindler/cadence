@@ -3,6 +3,11 @@
 // (Voyage 429 -> service 503), or the service being unreachable/down.
 
 const AI_BASE = process.env.AI_SERVICE_URL ?? "http://localhost:8000";
+// Shared secret sent to the AI service when it's protected (production). Unset
+// locally, where the service is open. Must match the AI service's AI_SERVICE_KEY.
+const AI_HEADERS: HeadersInit = process.env.AI_SERVICE_KEY
+  ? { "X-API-Key": process.env.AI_SERVICE_KEY }
+  : {};
 
 export type RecordingHit = {
   slug: string;
@@ -23,7 +28,7 @@ export type AiOutcome =
 
 async function getOutcome(path: string): Promise<AiOutcome> {
   try {
-    const res = await fetch(`${AI_BASE}${path}`, { cache: "no-store" });
+    const res = await fetch(`${AI_BASE}${path}`, { cache: "no-store", headers: AI_HEADERS });
     // The service returns 503 when the embedding provider is rate-limited.
     if (res.status === 503 || res.status === 429) return { status: "rate_limited" };
     if (!res.ok) return { status: "unavailable" };
@@ -55,7 +60,7 @@ export function recommendationsForUser(userId: string, limit = 8) {
 
 async function getJson<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${AI_BASE}${path}`, { cache: "no-store" });
+    const res = await fetch(`${AI_BASE}${path}`, { cache: "no-store", headers: AI_HEADERS });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {

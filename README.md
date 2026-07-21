@@ -18,7 +18,8 @@ modeling (PostgreSQL + Prisma), a Next.js/TypeScript app, a Python AI service
 - **Database** — PostgreSQL 16 + pgvector (single source of truth)
 - **AI** — Anthropic Claude for generation (assistant + review summaries), configurable via `CADENCE_LLM_MODEL` (`claude-haiku-4-5` in this project's `.env`; `claude-opus-4-8` default); self-hosted sentence-transformers embeddings by default (Voyage AI / OpenAI optional)
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design and
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for deploying a live instance (Render + Neon, free tier).
 
 ## Getting started
 

@@ -1,5 +1,6 @@
 import httpx
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 
 from .assistant import answer as assistant_answer
 from .assistant import summarize_reviews
@@ -12,12 +13,21 @@ from .search import recommend_for_user, search_recordings, similar_recordings
 app = FastAPI(title="Cadence AI Service", version="0.1.0")
 
 
+@app.middleware("http")
+async def api_key_guard(request: Request, call_next):
+    # When AI_SERVICE_KEY is set (production), every endpoint except /health
+    # requires a matching X-API-Key header. Unset (local dev) leaves it open.
+    expected = settings.ai_service_key
+    if expected and request.url.path != "/health":
+        if request.headers.get("x-api-key") != expected:
+            return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key."})
+    return await call_next(request)
+
+
 @app.exception_handler(httpx.HTTPStatusError)
 def _embedding_provider_error(_request, exc: httpx.HTTPStatusError):
     # Surface upstream embedding-provider failures (e.g. Voyage 429 rate limit)
     # as a clean 503 the web UI can degrade on, not a 500 stack trace.
-    from fastapi.responses import JSONResponse
-
     status = exc.response.status_code
     detail = "Embedding provider rate-limited; try again shortly." if status == 429 else "Embedding provider error."
     return JSONResponse(status_code=503, content={"detail": detail, "upstream_status": status})
