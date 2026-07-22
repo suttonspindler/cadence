@@ -53,7 +53,7 @@ export default async function HomePage() {
           One work. Many interpretations.
         </h1>
         <p className="mt-5 text-lg leading-relaxed text-ink-soft">
-          The same piece exists in dozens of recordings — different performers, ensembles,
+          The same piece exists in dozens of recordings, each with different performers, ensembles,
           conductors, and traditions. Cadence organizes them so you can explore, compare, and
           understand the world of classical performance.
         </p>

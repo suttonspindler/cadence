@@ -23,7 +23,7 @@ export default async function SearchPage({
     <div>
       <h1 className="font-display text-4xl font-semibold tracking-tight">Discover</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">
-        Describe what you want to hear in your own words — mood, era, style, forces — and Cadence
+        Describe what you want to hear in your own words: mood, era, style, or forces. Cadence
         finds recordings by meaning, not just keywords.
       </p>
 
@@ -66,7 +66,7 @@ export default async function SearchPage({
             </p>
           ) : outcome.status === "unavailable" ? (
             <p className="rounded-lg border border-line bg-paper-raised p-4 text-sm text-ink-soft">
-              Search is unavailable — the AI service isn&apos;t reachable. Start it with{" "}
+              Search is unavailable. The AI service isn&apos;t reachable. Start it with{" "}
               <code>npm run ai:dev</code>.
             </p>
           ) : outcome.results.length === 0 ? (

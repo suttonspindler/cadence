@@ -43,7 +43,7 @@ export default async function RootLayout({
 
         <footer className="border-t border-line">
           <div className="mx-auto max-w-5xl px-6 py-6 text-xs text-ink-faint">
-            Cadence — an AI-enhanced classical music discovery platform.
+            Cadence, an AI-enhanced classical music discovery platform.
           </div>
         </footer>
       </body>

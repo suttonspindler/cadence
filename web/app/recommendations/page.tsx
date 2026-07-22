@@ -20,7 +20,7 @@ export default async function RecommendationsPage() {
     <div>
       <h1 className="font-display text-4xl font-semibold tracking-tight">Recommended for you</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">
-        Recordings near your taste that you haven&apos;t heard yet — found by comparing the meaning
+        Recordings near your taste that you haven&apos;t heard yet, found by comparing the meaning
         of what you&apos;ve listened to against the rest of the catalog, not by matching tags.
       </p>
 

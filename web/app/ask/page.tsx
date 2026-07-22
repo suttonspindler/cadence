@@ -80,7 +80,7 @@ function AnswerBlock({
   if (result === null) {
     return (
       <Notice>
-        The assistant is unavailable — the AI service isn&apos;t reachable. Start it with{" "}
+        The assistant is unavailable. The AI service isn&apos;t reachable. Start it with{" "}
         <code>npm run ai:dev</code>.
       </Notice>
     );
@@ -101,7 +101,7 @@ function AnswerBlock({
         </p>
         {result.retrieved && result.retrieved.length > 0 && (
           <p className="mt-3 text-ink-faint">
-            Retrieval is working — it found {result.retrieved.length} relevant sources:{" "}
+            Retrieval is working. It found {result.retrieved.length} relevant sources:{" "}
             {result.retrieved.join("; ")}.
           </p>
         )}

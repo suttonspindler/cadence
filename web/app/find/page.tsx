@@ -49,7 +49,7 @@ export default async function FindPage({
       <div>
         <h1 className="font-display text-4xl font-semibold tracking-tight">Search</h1>
         <p className="mt-2 max-w-2xl text-ink-soft">
-          Search the catalog by name — composers, works, albums, and performers. Looking for
+          Search the catalog by name: composers, works, albums, and performers. Looking for
           something by mood or style instead?{" "}
           <Link href="/search" className="text-accent hover:underline">
             Try Discover

@@ -73,7 +73,7 @@ export default async function WorkPage({ params }: { params: Promise<{ slug: str
           Recordings <span className="text-ink-faint">({work.recordings.length})</span>
         </h2>
         <p className="mb-4 max-w-2xl text-sm text-ink-soft">
-          Compare interpretations of the same work — different performers, ensembles, and
+          Compare interpretations of the same work: different performers, ensembles, and
           performance traditions.
         </p>
         <ul className="grid gap-3">
