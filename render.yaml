@@ -11,8 +11,10 @@ services:
     runtime: node
     plan: free
     # Built from the repo root so npm workspaces (@cadence/db) resolve. Prisma
-    # client is generated before the Next build.
-    buildCommand: npm install && npm run db:generate && npm run build --workspace web
+    # client is generated before the Next build. `--include=dev` is required
+    # because NODE_ENV=production (set below) otherwise makes npm skip
+    # devDependencies — but the build needs them (tailwind postcss, typescript).
+    buildCommand: npm install --include=dev && npm run db:generate && npm run build --workspace web
     startCommand: npm start --workspace web -- -p $PORT
     healthCheckPath: /
     envVars:
