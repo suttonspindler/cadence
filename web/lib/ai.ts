@@ -5,9 +5,7 @@
 const AI_BASE = process.env.AI_SERVICE_URL ?? "http://localhost:8000";
 // Shared secret sent to the AI service when it's protected (production). Unset
 // locally, where the service is open. Must match the AI service's AI_SERVICE_KEY.
-const AI_HEADERS: HeadersInit = process.env.AI_SERVICE_KEY
-  ? { "X-API-Key": process.env.AI_SERVICE_KEY }
-  : {};
+const AI_HEADERS: HeadersInit = process.env.AI_SERVICE_KEY ? { "X-API-Key": process.env.AI_SERVICE_KEY } : {};
 
 export type RecordingHit = {
   slug: string;
@@ -26,16 +24,25 @@ export type AiOutcome =
   | { status: "rate_limited" }
   | { status: "unavailable" };
 
+/** Helper to fetch with an extended timeout (60s) for Render free-tier cold starts */
+async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+  // AbortSignal.timeout gives Render up to 60s to spin up cadence-ai
+  return fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(60000),
+  });
+}
+
 async function getOutcome(path: string): Promise<AiOutcome> {
   try {
-    const res = await fetch(`${AI_BASE}${path}`, { cache: "no-store", headers: AI_HEADERS });
+    const res = await fetchWithTimeout(`${AI_BASE}${path}`, { cache: "no-store", headers: AI_HEADERS });
     // The service returns 503 when the embedding provider is rate-limited.
     if (res.status === 503 || res.status === 429) return { status: "rate_limited" };
     if (!res.ok) return { status: "unavailable" };
     const data = (await res.json()) as { results?: RecordingHit[] };
     return { status: "ok", results: data.results ?? [] };
   } catch {
-    return { status: "unavailable" }; // connection refused / not running
+    return { status: "unavailable" }; // connection refused / timed out / not running
   }
 }
 
@@ -60,7 +67,7 @@ export function recommendationsForUser(userId: string, limit = 8) {
 
 async function getJson<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${AI_BASE}${path}`, { cache: "no-store", headers: AI_HEADERS });
+    const res = await fetchWithTimeout(`${AI_BASE}${path}`, { cache: "no-store", headers: AI_HEADERS });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
